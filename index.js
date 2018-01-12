@@ -4,86 +4,75 @@ var app = express();
 var bodyParser = require('body-parser');
 var fs = require('fs');
 var Tasks = require('./app/Tasks');
-var Utils = require('./app/Utils');
+var AWS = require('./app/AWS');
 var json2xls = require('json2xls');
+var uploader = require('express-fileupload');
+var xlsx = require('xlsx');
 
 app.use(bodyParser.json());
 app.use(json2xls.middleware);
+app.use(uploader());
 
 /** API path that will upload the files */
 app.post('/upload', function (req, res) {
-    Utils.upload(req, res, function (err) {
-        if (err) {
-            res.json({ error_code: 1, err_desc: err });
-            return;
-        }
-        /** Multer gives us file info in req.file object */
-        if (!req.file) {
-            res.json({ error_code: 1, err_desc: "No excel file uploaded" });
-            return;
-        }
-
-        let excelToJson = Utils.excel(req.file);
-        try {
-            excelToJson({
-                input: req.file.path,
-                output: null, //since we don't need output.json
-                lowerCaseHeaders: true
-            }, function (err, tasks) {
-                if (err) {
-                    return res.json({ error_code: 1, err_desc: err, data: null });
-                }
-
+    AWS.upload(req.files.file, (err, data) => {
+        AWS.fetch(null, (err, data) => {
+            try {
+                let workbook = xlsx.read(data.Body, {
+                    type: 'buffer'
+                });
+                
+                const sheet_name_list = workbook.SheetNames;
+                let sheet1 = workbook.Sheets[sheet_name_list[0]];
+                let tasks = xlsx.utils.sheet_to_json(sheet1);
+    
                 Tasks.sync().then(() => {
                     let failed = 0;
-
+    
                     tasks.forEach(task => {
                         // format boolean properly
-                        if (task.completed.toLowerCase() == 'true' ||
-                            task.completed.toLowerCase() == 'yes') {
-                            task.completed = true;
+                        if (task.Completed.toLowerCase() == 'true' ||
+                            task.Completed.toLowerCase() == 'yes' ||
+                            task.Completed.toLowerCase() == 1) {
+                            task.Completed = true;
                         }
                         else {
-                            task.completed = false;
+                            task.Completed = false;
                         }
-
+    
                         // create the task
-                        let created = Tasks.create(task);
-                        if (!created) {
+                        let data = {
+                            description: task.Description,
+                            completed: task.Completed
+                        };
+                        
+                        if (!Tasks.create(data)) {
                             failed++;
                         }
                     });
-
+    
                     let status = 'success=Upload was successful';
                     if (failed) {
                         status = 'error=' + failed + ' lines could not be uploaded';
                     }
-                    
                     // redirect as successful
                     res.redirect('/?' + status);
                 });
-
-            });
-        } catch (e) {
-            res.json({ error_code: 1, err_desc: "Excel file is corrupt" });
-        }
-
-        // delete file
-        try {
-            fs.unlinkSync(req.file.path);
-        }
-        catch (e) {
-            // file not deleted
-        }
+            } catch (e) {
+                console.log(e.message);
+                res.redirect('/?error=Upload failed');
+            }
+            AWS.delete();
+        });
     });
 });
 app.get('/', function (req, res) {
     res.sendFile(__dirname + "/index.html");
 });
-app.get('/download/template', function(req, res) {
+app.get('/download/template', function (req, res) {
     res.sendFile(__dirname + '/tasks.xlsx');
 });
-app.get('/download/tasks', function(req, res) {
+app.get('/download/tasks', function (req, res) {
     Tasks.findAll().then(tasks => {
         let data = tasks.map(task => task.dataValues);
         res.xls('tasks_data.xlsx', data);

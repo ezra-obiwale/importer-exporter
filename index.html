@@ -1,26 +1,89 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Importer Exporter</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
-    <script src="main.js"></script>
-</head>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Importer Exporter</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<body>
-    <form id="uploadForm" enctype="multipart/form-data" action="upload" method="post">
-        <label>
-            Select Excel file to upload
-            <input type="file" name="file" accept=".xls,.xlsx" />
-        </label>
-        <input type="submit" value="Upload" name="submit">
-    </form>
+        <style>
+            body {
+                text-align: center;
+            }
+        </style>
+    </head>
 
-    <a href="/download/template" target="_blank">Download template</a>
-    <a href="/download/tasks" target="_blank">Download Tasks</a>
-</body>
+    <body>
+
+
+        <form id="uploadForm" enctype="multipart/form-data" action="upload" method="post">
+            <table border="1" cellspacing="0" cellpadding="10">
+                <thead>
+                    <tr>
+                        <th>
+                            <a href="/download/template" target="_blank">Download template</a>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th>
+                            <label for="file">Select Excel file to upload</label>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input type="file" id="file" name="file" accept=".xls,.xlsx" />
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>
+                            <input type="submit" value="Upload" name="submit">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td id="status"></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <a href="/download/tasks" target="_blank">Download Tasks</a>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </form>
+    </body>
+
+    <script>
+        let params = (function (querystring) {
+            // remove any preceding url and split
+            querystring = querystring.substring(querystring.indexOf('?') + 1).split('&');
+            var params = {}, pair, d = decodeURIComponent;
+            // march and parse
+            for (var i = querystring.length - 1; i >= 0; i--) {
+                pair = querystring[i].split('=');
+                params[d(pair[0])] = d(pair[1] || '');
+            }
+
+            return params;
+        })(location.search);
+
+        let status_div = document.getElementById('status');
+        status_div.style.color = 'white';
+        if (params.success) {
+            status_div.style.backgroundColor = 'darkgreen';
+            status_div.innerHTML = params.success;
+
+            history.replaceState({}, null, '/');
+        }
+        else if (params.error) {
+            status_div.style.backgroundColor = 'darkred';
+            status_div.innerHTML = params.error;
+            history.replaceState({}, null, '/');
+        }
+    </script>
 
 </html>
