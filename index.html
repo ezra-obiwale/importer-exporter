@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Importer Exporter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="main.css" />
+    <script src="main.js"></script>
+</head>
+
+<body>
+    <form id="uploadForm" enctype="multipart/form-data" action="upload" method="post">
+        <label>
+            Select Excel file to upload
+            <input type="file" name="file" accept=".xls,.xlsx" />
+        </label>
+        <input type="submit" value="Upload" name="submit">
+    </form>
+</body>
+
+</html>
